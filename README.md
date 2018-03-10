@@ -1,73 +1,66 @@
-# Project 7: Authenticated brevet time calculator service
+# Project 7: Authenticated Brevet Time Calculator Service
 
-## What is in this repository
+## What Does This Repository Contain
 
-You have a minimal implementation of password- and token-based authentication modules in "Auth" folder, using which you can create authenticated REST API-based services (as demonstrated in class). 
+The "Auth" folder contains the minimal implementation of password- and token-based which were provided for this project. Using these formats as reference, I combined these resources with my programs from project 6 to make the authenticated REST API-based service (located in the DockerRestAPI folder). This folder contains both the code needed to calculate brevet times (located in DockerMongo folder), a php file to display requested resources (located in website folder), and an api which is being used to authenticate and return the correct resources/messages (located in laptop folder). To make my api testable through a browser, I included login and register pages for users to register/sign in (located in laptop/templates).
 
-## Recap 
+## Recap (Project 6)
 
-You will reuse *your* code from project
-6 (https://github.com/UOCIS322/proj6-rest). Recall: you created the 
-following three parts: 
+PART 1: Designing RESTful services to expose what is stored in MongoDB...
 
-* You designed RESTful services to expose what is stored in MongoDB.
-Specifically, you used the boilerplate given in DockerRestAPI folder, and
-created the following:
+** "http://<host:port>/listAll" returns all open and close times in the database
+** "http://<host:port>/listOpenOnly" returns open times only
+** "http://<host:port>/listCloseOnly" returns close times only
 
-** "http://<host:port>/listAll" should return all open and close times in the database
+Designed Two Different Representations: CSV and JSON (with JSON set to default): 
 
-** "http://<host:port>/listOpenOnly" should return open times only
+** "http://<host:port>/listAll/csv" returns all open and close times in CSV format
+** "http://<host:port>/listOpenOnly/csv" returns open times only in CSV format
+** "http://<host:port>/listCloseOnly/csv" returns close times only in CSV format
+** "http://<host:port>/listAll/json" returns all open and close times in JSON format
+** "http://<host:port>/listOpenOnly/json" returns open times only in JSON format
+** "http://<host:port>/listCloseOnly/json" returns close times only in JSON format
 
-** "http://<host:port>/listCloseOnly" should return close times only
+Query Parameter was Also Added to Get Top "k" Open and Close Times:
+(Times Were Returned In Ascending Order As Shown Below)
 
-* You also designed two different representations: one in csv and one 
- in json. For the above, JSON should be your default representation. 
+** "http://<host:port>/listOpenOnly/csv?top=3" returns top 3 open times only in csv
+** "http://<host:port>/listOpenOnly/json?top=5" returns top 5 open times only in json
 
-** "http://<host:port>/listAll/csv" should return all open and close times in CSV format
+Consumer Programs Were Designed in php to Expose the Services.
 
-** "http://<host:port>/listOpenOnly/csv" should return open times only in CSV format
+## Project 7 Added Functionality
 
-** "http://<host:port>/listCloseOnly/csv" should return close times only in CSV format
+* Note that the port number for the brevet time calculator is 5003 while the port number of the authenticated REST API-based service is 5001
 
-** "http://<host:port>/listAll/json" should return all open and close times in JSON format
+In order to turn project 6 (described above) into an authenticated REST API-based service, I added the following functionalities:
 
-** "http://<host:port>/listOpenOnly/json" should return open times only in JSON format
+POST **/api/register**
 
-** "http://<host:port>/listCloseOnly/json" should return close times only in JSON format
+- This takes the user to a register page when requested on a browser, prompting the user to enter a username and password in order to sign up
+- If registration is successful, a status code of 201 is returned and the page is redirected to a new html page containing a JSON object with the newly added user and a location header containing the new user's URI 
+- By JSON object with newly added user, I defined this as meaning the contents of the database for that particular user which would include 1) The username 2) The HASHED password and 3) The unique id (ie the Location/URI)
+- If the username and password already exist or the user fails to enter something in one of the fields, a status code of 400 (bad request) is returned 
 
-* You also added a query parameter to get top "k" open and close
-times. For examples, see below.
+GET **/api/token**
 
-** "http://<host:port>/listOpenOnly/csv?top=3" should return top 3 open times only (in ascending order) in CSV format 
+Request must be authenticated using a HTTP Basic Authentication...
+- This takes the user to a page prompting them to enter their username and password into two input fields (ie a login page)
+- Upon submitting their username and password, the program checks the database to make sure their username and password are valid (using psw.py)
+- If users credentials are valid, a token is made using the secret key and the users unique id (using createToken.py). This token is then returned as a json object
+- The returned JSON object (with 201 status code) should contain 1) The token itself & 2) The duration of the token - CURRENTLY SET TO 30 SECONDS
+- To obtain the desired resources, this token should be copied and pasted into the header of the next request as shown below:
 
-** "http://<host:port>/listOpenOnly/json?top=5" should return top 5 open times only (in ascending order) in JSON format
+http://127.0.0.1:5001/listAll?token=eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyMDY0MzE2NiwiZXhwIjoxNTIwNjQzMTk2fQ.eyJpZCI6IjVhYTMyYzNlNTc0MWM1MDA0OTIyODMyMCJ9.olcjG8VkKYMsHlaTdKV-0K0bbZoEZo5Thfirxmqpz68
 
-* You'll also designed consumer programs (e.g., in jQuery) to expose the services.
+- In this case, your token is eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyMDY0MzE2NiwiZXhwIjoxNTIwNjQzMTk2fQ.eyJpZCI6IjVhYTMyYzNlNTc0MWM1MDA0OTIyODMyMCJ9.olcjG8VkKYMsHlaTdKV-0K0bbZoEZo5Thfirxmqpz68
 
-## Functionality you will add
+- If the user is not in the data base or their credentials are not valid or one of the input fields is left blank, then a status code of 401 (unauthorized) is returned
 
-In this project, you will add the following functionality:
+GET **/RESOURCE-YOU-CREATED-IN-PROJECT-6**
 
-- POST **/api/register**
-
-    Registers a new user. On success a status code 201 is returned. The body of the response contains
-a JSON object with the newly added user. A `Location` header contains the URI
-of the new user. On failure status code 400 (bad request) is returned. Note: The 
-password is hashed before it is stored in the database. Once hashed, the original 
-password is discarded. Your database should have three fields: id (unique index),
-username and password. 
-
-- GET **/api/token**
-
-    Returns a token. This request must be authenticated using a HTTP Basic
-Authentication (see password.py for example). On success a JSON object is returned 
-with a field `token` set to the authentication token for the user and 
-a field `duration` set to the (approximate) number of seconds the token is 
-valid. On failure status code 401 (unauthorized) is returned.
-
-- GET **/RESOURCE-YOU-CREATED-IN-PROJECT-6**
-
-    Return a protected <resource>, which is basically what you created in project 6. This request must be authenticated using token-based authentication only (see testToken.py). HTTP password-based (basic) authentication is not allowed. On success a JSON object with data for the authenticated user is returned. On failure status code 401 (unauthorized) is returned.
+- If request is authenticated using token-based authentication (explained above), a protected <resource> (created in project 6 and explained above) is returned
+- If the token needed to access this protected resource is not valid or not given, a status code 401 (unauthorized) is returned
 
 ## Tasks
 
